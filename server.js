@@ -10,9 +10,7 @@ const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true,
 client.connect()
 
 async function run() {
-	// Connect the client to the server
 	// await client.connect();
-	// Establish and verify connection
 	// await client.db("admin").command({ ping: 1 });
 	// console.log("Connected successfully to server");
 	client.db("broker").collection("stocks").findOne({"symbol":"NVDA"}, (err, res) =>{
@@ -20,7 +18,6 @@ async function run() {
 		console.log(res.name);
 	})
 }
-
 // run().catch(console.dir);
 
 const app = express();
