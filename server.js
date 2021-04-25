@@ -5,6 +5,9 @@ const helmet = require("helmet")
 const morgan = require("morgan")
 const {MongoClient} = require('mongodb');
 
+if(! process.env.MONGODB_URI){
+	throw new Error("No MongoDB uri was set")
+}
 const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 client.connect()
@@ -21,8 +24,7 @@ async function run() {
 // run().catch(console.dir);
 
 const app = express();
-const port = 8080
-
+const port = process.env.PORT || 8080
 
 app.use(express.json())
 app.use(helmet())
