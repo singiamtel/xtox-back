@@ -2,6 +2,7 @@ require("dotenv").config()
 const express = require("express")
 const slowDown = require("express-slow-down")
 const helmet = require("helmet")
+const cors = require("cors")
 const morgan = require("morgan")
 const {MongoClient} = require('mongodb');
 
@@ -29,6 +30,26 @@ const port = process.env.PORT || 8080
 app.use(express.json())
 app.use(helmet())
 app.use(morgan("tiny"))
+app.use(cors())
+// app.use(function(req, res, next) { res.header("Access-Control-Allow-Origin", "*");
+// 	res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+// 	next();
+// });
+
+app.use('/login', (req, res) => {
+	// req.body.password
+	if(req.body.username === "sergio"){
+		res.send({
+			token: 'test123'
+		});
+	}
+	else {
+		res.send({
+			token: ''
+		});
+	}
+
+});
 
 app.get("/", function(req, res){
 	res.json({"status":"success"})
