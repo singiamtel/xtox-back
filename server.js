@@ -25,43 +25,49 @@ app.use(helmet())
 app.use(morgan("tiny"))
 app.use(cors())
 
+
 app.post('/login', (req, res) => {
-	client.db("broker").collection("users").findOne({"username":req.body.username}, (err, result) =>{
-		if(err) throw err;
-		console.log(result);
-		if(result){
-
-			bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
-				console.log(hash);
-				if(result.password === hash){
-					var newToken = jwt.sign({username:req.body.username}, 'supersecret', {expiresIn:"2h"});
-					res.send({
-						status: "success",
-						token: newToken
-					});
-
-
-				}
-
-				else{
-					res.send({
-						status: "error",
-						token: ''
-					});
-
-				}
-			});
-		}
-		else{
-			res.send({
-				status: "error",
-				token: ''
-			});
-
-		}
-	})
+	res.send({
+		status: "success",
+		token: "AAAAAA"
+	});
 });
-
+// app.post('/login', (req, res) => {
+// 	client.db("broker").collection("users").findOne({"username":req.body.username}, (err, result) =>{
+// 		if(err) throw err;
+// 		console.log(result);
+// 		if(result){
+//
+// 			bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+// 				console.log(hash);
+// 				if(result.password === hash){
+// 					var newToken = jwt.sign({username:req.body.username}, process.env.JWT_SECRET, {expiresIn:"2h"});
+// 					res.send({
+// 						status: "success",
+// 						token: newToken
+// 					});
+//
+//
+// 				}
+//
+// 				else{
+// 					res.send({
+// 						status: "error",
+// 						token: ''
+// 					});
+//
+// 				}
+// 			});
+// 		}
+// 		else{
+// 			res.send({
+// 				status: "error",
+// 				token: ''
+// 			});
+//
+// 		}
+// 	})
+// });
 
 app.post('/register', (req, res) => {
 	client.db("broker").collection("users").findOne({"username":req.body.username}, (err, result) =>{
