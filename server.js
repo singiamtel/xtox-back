@@ -40,9 +40,7 @@ app.post('/login', (req, res) => {
 	client.db("broker").collection("users").findOne({"username":req.body.username}, (err, result) =>{
 		if(err) throw err;
 		if(result){
-			console.log(result);
 			bcrypt.compare(req.body.password, result.password, (err, same) => {
-				console.log("done");
 				if(err) throw err;
 				if(same){
 					res.send({
@@ -77,22 +75,20 @@ app.post('/register', (req, res) => {
 
 		bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
 			client.db("broker").collection("users").insertOne({"username":req.body.username, "password":hash, "wallet":{"eur":"0"}});
+			client.db("broker").collection("wallets").insertOne({"username":req.body.username, "eur":"1000"});
 		});
 		res.json({"status":"success"})
 	});
 });
 
 function authenticateToken(req, res, next) {
-	console.log(req.body);
 	const token = req.body.token
-	// const token = authHeader.split(' ')[1]
-
-	if (token == null) return res.sendStatus(401)
+	// if (token == null) return res.sendStatus(401)
 
 	jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
 		if (err){
 			console.log(err);
-			return res.sendStatus(403)
+			// return res.sendStatus(403)
 		}
 
 		req.user = user
@@ -101,19 +97,46 @@ function authenticateToken(req, res, next) {
 	})
 }
 
-app.use("/buy/:id", authenticateToken);
+app.use("/buy/:id", authenticateToken)
 
 app.post("/buy/:id", (req, res) => {
 	console.log("Logged in!")
-	client.db("broker").collection("stocks").findOne({"symbol":req.body.symbol}, (err, result) => {
+	client.db("broker").collection("stocks").findOne({"symbol":req.params.id.toUpperCase()}, (err, result) => {
 		if(err) throw err
 		result = JSON.parse(JSON.stringify(result))
-		res.set("content-type", "application/json")
-		console.log(result);
+		// res.set("content-type", "application/json")
+		console.log(req.user.username);
+		if(result){
+			// client.db("broker").collection("wallets").updateOne({"username":req.user.username}, {$set:{username.wallet.eur : 3}}, (err, result) => {
+			//
+			client.db("broker").collection("wallets").findOne({username:req.user.username}, (err, result) => {
+				// console.log(result);
+				if(result){
+					console.log(result.eur);
+					console.log(req.params);
+				}
+				else console.log("NO RESULT");
+			})
+		}
+		else{
+			return res.json({
+				"status":"error",
+				"message":"Stock not found"
+			})
+		}
 		// res.jsonp(result)
 	});
-	res.json({"status":"success"})
 })
+
+app.use("/wallet", authenticateToken)
+
+app.get("/wallet", function(req, res){
+
+	client.db("broker").collection("wallet").findOne({username:req.user}, (err, result) => {
+		console.log(result)
+		res.json(result)
+	})
+});
 
 app.get("/", function(req, res){
 	res.json({"status":"success"})
