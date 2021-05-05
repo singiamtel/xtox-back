@@ -26,48 +26,48 @@ app.use(morgan("tiny"))
 app.use(cors())
 
 
-app.post('/login', (req, res) => {
-	res.send({
-		status: "success",
-		token: "AAAAAA"
-	});
-});
 // app.post('/login', (req, res) => {
-// 	client.db("broker").collection("users").findOne({"username":req.body.username}, (err, result) =>{
-// 		if(err) throw err;
-// 		console.log(result);
-// 		if(result){
-//
-// 			bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
-// 				console.log(hash);
-// 				if(result.password === hash){
-// 					var newToken = jwt.sign({username:req.body.username}, process.env.JWT_SECRET, {expiresIn:"2h"});
-// 					res.send({
-// 						status: "success",
-// 						token: newToken
-// 					});
-//
-//
-// 				}
-//
-// 				else{
-// 					res.send({
-// 						status: "error",
-// 						token: ''
-// 					});
-//
-// 				}
-// 			});
-// 		}
-// 		else{
-// 			res.send({
-// 				status: "error",
-// 				token: ''
-// 			});
-//
-// 		}
-// 	})
+// 	res.send({
+// 		status: "success",
+// 		token: "AAAAAA"
+// 	});
 // });
+
+function generateToken(username) {
+	return jwt.sign(username, process.env.JWT_SECRET, {expiresIn : 3600});
+}
+
+app.post('/login', (req, res) => {
+	client.db("broker").collection("users").findOne({"username":req.body.username}, (err, result) =>{
+		if(err) throw err;
+		if(result){
+			console.log(result);
+			bcrypt.compare(req.body.password, result.password, (err, same) => {
+				console.log("done");
+				if(err) throw err;
+				if(same){
+					res.send({
+						status: "success",
+						token:generateToken({username : req.body.username} )
+					});
+				}
+				else{
+					res.send({
+						status: "error",
+						token: ''
+					})
+
+				}
+			})
+		}
+		else{
+			res.send({
+				status: "error",
+				token: ''
+			})
+		}
+	})
+});
 
 app.post('/register', (req, res) => {
 	client.db("broker").collection("users").findOne({"username":req.body.username}, (err, result) =>{
@@ -82,6 +82,29 @@ app.post('/register', (req, res) => {
 		res.json({"status":"success"})
 	});
 });
+
+function authenticateToken(req, res, next) {
+	const authHeader = req.headers['authorization']
+	const token = authHeader && authHeader.split(' ')[1]
+
+	if (token == null) return res.sendStatus(401)
+
+	jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
+		console.log(err)
+
+		if (err) return res.sendStatus(403)
+
+		req.user = user
+
+		next()
+	})
+}
+
+app.use("/buy", authenticateToken);
+
+app.post("/buy", (req, res) => {
+	console.log("Logged in!");
+})
 
 app.get("/", function(req, res){
 	res.json({"status":"success"})
