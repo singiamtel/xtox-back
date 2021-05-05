@@ -8,12 +8,18 @@ const morgan = require("morgan")
 const {MongoClient} = require('mongodb');
 const jwt = require('jsonwebtoken');
 
-if(! process.env.MONGODB_URI){
+if(!process.env.MONGODB_URI){
 	throw new Error("No MongoDB URI was set")
 }
 const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 client.connect()
+
+const speedLimiter = slowDown({
+	windowMs: 15 * 60 * 1000,
+	delayAfter: 100,
+	delayMs: 500
+});
 
 const app = express();
 const port = process.env.PORT || 8080
@@ -24,14 +30,7 @@ app.use(express.json())
 app.use(helmet())
 app.use(morgan("tiny"))
 app.use(cors())
-
-
-// app.post('/login', (req, res) => {
-// 	res.send({
-// 		status: "success",
-// 		token: "AAAAAA"
-// 	});
-// });
+app.use(speedLimiter)
 
 function generateToken(username) {
 	return jwt.sign(username, process.env.JWT_SECRET, {expiresIn : 3600});
@@ -84,15 +83,17 @@ app.post('/register', (req, res) => {
 });
 
 function authenticateToken(req, res, next) {
-	const authHeader = req.headers['authorization']
-	const token = authHeader && authHeader.split(' ')[1]
+	console.log(req.body);
+	const token = req.body.token
+	// const token = authHeader.split(' ')[1]
 
 	if (token == null) return res.sendStatus(401)
 
-	jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
-		console.log(err)
-
-		if (err) return res.sendStatus(403)
+	jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+		if (err){
+			console.log(err);
+			return res.sendStatus(403)
+		}
 
 		req.user = user
 
@@ -100,10 +101,18 @@ function authenticateToken(req, res, next) {
 	})
 }
 
-app.use("/buy", authenticateToken);
+app.use("/buy/:id", authenticateToken);
 
-app.post("/buy", (req, res) => {
-	console.log("Logged in!");
+app.post("/buy/:id", (req, res) => {
+	console.log("Logged in!")
+	client.db("broker").collection("stocks").findOne({"symbol":req.body.symbol}, (err, result) => {
+		if(err) throw err
+		result = JSON.parse(JSON.stringify(result))
+		res.set("content-type", "application/json")
+		console.log(result);
+		// res.jsonp(result)
+	});
+	res.json({"status":"success"})
 })
 
 app.get("/", function(req, res){
