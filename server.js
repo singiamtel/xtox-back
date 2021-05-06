@@ -97,57 +97,81 @@ function authenticateToken(req, res, next) {
 	})
 }
 
+const currency = ["eur"]
+
 app.use("/buy/:id", authenticateToken)
 
 app.post("/buy/:id", (req, res) => {
 	console.log("Logged in!")
+	console.log(req.body);
+	console.log("ENDQUERY");
 	const add = {}
 	var oldAmount = 0
-	symbol = req.params.id
-	client.db("broker").collection("wallets").findOne({username:req.user.username, }, (err, result) => {
+	symbol = req.params.id.toUpperCase()
+	client.db("broker").collection("wallets").findOne({username:req.user.username }, (err, result) => {
 		if(err) throw err
 		console.log(result);
 		for(key in result){
 			if(key === symbol){
-				oldAmount = parseFloat(result[key]) + 1
+				oldAmount = parseFloat(result[key]) + parseFloat(req.body.amount)
 				oldAmount = oldAmount.toString()
-				// console.log("old" + oldAmount);
 			}
+			// if(currency.includes(key)){
+            //
+			// 	client.db("broker").collection("stocks").findOne({symbol:symbol }, (err, stockResult) => {
+			// 	if(result[key] < stockResult.hDailies[0].close){
+			// 		return res.json({
+			// 			"status":"error",
+			// 			"message":"Insufficient currency in wallet"
+			// 		})
+			// 	}
+			// 	})
+			// 		
+			// }
 		}
-
 		add[symbol] = oldAmount
 		console.log(oldAmount);
 		console.log("add::::");
 		console.log(add);
 		client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err, secResult) => {
 			console.log(req.user?.username);
-			// console.log(secResult);
-			// If stock exists
-			// if(result){
-			// client.db("broker").collection("wallets").findOne({username:req.user.username}, (err, secResult) => {
-			// 	// If wallet exists
-			// 	if(secResult){
-			// 		console.log(secResult.eur);
-			// 		if(secResult.eur > result.hDailies[0].close){
-			// 			const finalSym = result.symbol
-			// 			console.log("result");
-			// 			console.log(result);
-			// 			console.log("Secresult");
-			// 			console.log(secResult);
-			// 				// client.db("broker").collection("wallets").updateOne({"username":req.user.username}, {$set:{eur : secResult.eur - result.hDailies[0].close, $addToSet : {finalSym: "1" }}})
-			// // client.db("broker").collection("wallets").updateOne({"username":req.user.username}, {$set:{eur : secResult.eur - result.hDailies[0].close, $addToSet : {finalSym: "1" }}})
-			// 		}
-			// 		else console.log("NO RESULT");
-			// 	}
-			//
-			// }
-			// else{
 			return res.json({
 				"status":"error",
 				"message":"Stock not found"
 			})
-			// }
-			// res.jsonp(result)
+		});
+	})
+
+})
+
+app.use("/sell/:id", authenticateToken)
+
+app.post("/sell/:id", (req, res) => {
+	console.log("Logged in!")
+	console.log(req.body);
+	console.log("ENDQUERY");
+	const add = {}
+	var oldAmount = 0
+	symbol = req.params.id.toUpperCase()
+	client.db("broker").collection("wallets").findOne({username:req.user.username }, (err, result) => {
+		if(err) throw err
+		console.log(result);
+		for(key in result){
+			if(key === symbol){
+				oldAmount = parseFloat(result[key]) - parseFloat(req.body.amount)
+				oldAmount = oldAmount.toString()
+			}
+		}
+		add[symbol] = oldAmount
+		console.log(oldAmount);
+		console.log("add::::");
+		console.log(add);
+		client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err, secResult) => {
+			console.log(req.user?.username);
+			return res.json({
+				"status":"error",
+				"message":"Stock not found"
+			})
 		});
 	})
 
