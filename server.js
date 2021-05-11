@@ -97,8 +97,6 @@ function authenticateToken(req, res, next) {
 	})
 }
 
-const currency = ["eur"]
-
 app.use("/buy/:id", authenticateToken)
 
 app.post("/buy/:id", (req, res) => {
@@ -106,40 +104,74 @@ app.post("/buy/:id", (req, res) => {
 	console.log(req.body);
 	console.log("ENDQUERY");
 	const add = {}
-	var oldAmount = 0
+	var amountExisted
+	var stockExisted
+	var enoughMoney
+	var oldAmount
+	var money = 0
 	symbol = req.params.id.toUpperCase()
 	client.db("broker").collection("wallets").findOne({username:req.user.username }, (err, result) => {
 		if(err) throw err
-		console.log(result);
 		for(key in result){
 			if(key === symbol){
-				oldAmount = parseFloat(result[key]) + parseFloat(req.body.amount)
-				oldAmount = oldAmount.toString()
+				amountExisted = true
+				oldAmount = (parseFloat(result[key]) + parseFloat(req.body.amount)).toString()
 			}
-			// if(currency.includes(key)){
-            //
-			// 	client.db("broker").collection("stocks").findOne({symbol:symbol }, (err, stockResult) => {
-			// 	if(result[key] < stockResult.hDailies[0].close){
-			// 		return res.json({
-			// 			"status":"error",
-			// 			"message":"Insufficient currency in wallet"
-			// 		})
-			// 	}
-			// 	})
-			// 		
-			// }
 		}
-		add[symbol] = oldAmount
-		console.log(oldAmount);
-		console.log("add::::");
-		console.log(add);
-		client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err, secResult) => {
-			console.log(req.user?.username);
-			return res.json({
-				"status":"error",
-				"message":"Stock not found"
-			})
-		});
+		client.db("broker").collection("stocks").findOne({symbol:symbol }, (err, stockResult) => {
+			if(!result){
+				stockExisted = false
+			}
+			else {
+				stockExisted = true
+			}
+			console.log(stockResult.hDailies[0].close);
+			if(stockResult.hDailies[0].close * req.body.amount <= result.eur){
+				enoughMoney = true
+				money = stockResult.hDailies[0].close * req.body.amount 
+			}
+
+			if(!amountExisted){
+				oldAmount = req.body.amount
+			}
+			if(stockExisted && enoughMoney){
+				//Update database
+				add[symbol] = oldAmount
+				let newMoney = result.eur - money
+				console.log("new money " + newMoney);
+				let changeMoney = {}
+				changeMoney["eur"] = newMoney
+				client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set : changeMoney}, (err, secResult) => {
+					client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err, secResult) => {
+					})
+				});
+			}
+			else{
+				if(!stockExisted){
+					console.log("stock not found");
+					return res.json({
+						"status":"error",
+						"message":"Stock not found"
+					})
+				}
+				else if(!enoughMoney){
+					console.log("Not enough money for the operation");
+					return res.json({
+						"status":"error",
+						"message":"Not enough money for the operation"
+					})
+				}
+				else{
+					console.log("Unidentified error");
+					return res.json({
+						"status":"error",
+						"message":"Unidentified error"
+					})
+
+				}
+			}
+		})
+
 	})
 
 })
@@ -151,28 +183,80 @@ app.post("/sell/:id", (req, res) => {
 	console.log(req.body);
 	console.log("ENDQUERY");
 	const add = {}
-	var oldAmount = 0
+	var amountExisted
+	var stockExisted
+	var enoughMoney
+	var oldAmount
+	var money = 0
 	symbol = req.params.id.toUpperCase()
 	client.db("broker").collection("wallets").findOne({username:req.user.username }, (err, result) => {
 		if(err) throw err
-		console.log(result);
 		for(key in result){
 			if(key === symbol){
-				oldAmount = parseFloat(result[key]) - parseFloat(req.body.amount)
-				oldAmount = oldAmount.toString()
+				amountExisted = true
+				oldAmount = (parseFloat(result[key]) - parseFloat(req.body.amount)).toString()
 			}
 		}
-		add[symbol] = oldAmount
-		console.log(oldAmount);
-		console.log("add::::");
-		console.log(add);
-		client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err, secResult) => {
-			console.log(req.user?.username);
+		if(!amountExisted){
 			return res.json({
-				"status":"error",
-				"message":"Stock not found"
+						"status":"error",
+						"message":"Stock not found"
 			})
-		});
+		}
+		client.db("broker").collection("stocks").findOne({symbol:symbol }, (err, stockResult) => {
+			if(!result){
+				stockExisted = false
+			}
+			else {
+				stockExisted = true
+			}
+			console.log(stockResult.hDailies[0].close);
+			if(stockResult.hDailies[0].close * req.body.amount <= result.eur){
+				enoughMoney = true
+				money = stockResult.hDailies[0].close * req.body.amount 
+			}
+
+			if(!amountExisted){
+				oldAmount = req.body.amount
+			}
+			if(stockExisted && enoughMoney){
+				//Update database
+				add[symbol] = oldAmount
+				let newMoney = result.eur - money
+				console.log("new money " + newMoney);
+				let changeMoney = {}
+				changeMoney["eur"] = newMoney
+				client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set : changeMoney}, (err, secResult) => {
+					client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err, secResult) => {
+					})
+				});
+			}
+			else{
+				if(!stockExisted){
+					console.log("stock not found");
+					return res.json({
+						"status":"error",
+						"message":"Stock not found"
+					})
+				}
+				else if(!enoughMoney){
+					console.log("Not enough money for the operation");
+					return res.json({
+						"status":"error",
+						"message":"Not enough money for the operation"
+					})
+				}
+				else{
+					console.log("Unidentified error");
+					return res.json({
+						"status":"error",
+						"message":"Unidentified error"
+					})
+
+				}
+			}
+		})
+
 	})
 
 })
@@ -183,7 +267,7 @@ app.post("/wallet", function(req, res){
 	client.db("broker").collection("wallets").findOne({username:req.user.username}, (err, result) => {
 		delete result.username
 		delete result._id
-		delete result.eur
+		// delete result.eur
 		res.json(result)
 	})
 });
