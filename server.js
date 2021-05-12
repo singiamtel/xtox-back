@@ -17,9 +17,9 @@ const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true,
 client.connect()
 
 const speedLimiter = slowDown({
-	// 100 requests every 15 minutes
+	// 1000 requests every 15 minutes
 	windowMs: 15 * 60 * 1000,
-	delayAfter: 100,
+	delayAfter: 1000,
 	delayMs: 500
 });
 
@@ -129,7 +129,7 @@ app.post("/buy/:id", (req, res) => {
 			}
 			if(stockResult.hDailies[0].close * req.body.amount <= result.eur){
 				enoughMoney = true
-				money = stockResult.hDailies[0].close * req.body.amount 
+				money = stockResult.hDailies[0].close * req.body.amount
 			}
 
 			if(!amountExisted){
@@ -145,6 +145,10 @@ app.post("/buy/:id", (req, res) => {
 					if(err) throw err
 					client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err) => {
 						if(err) throw err
+						return res.json({
+							"status":"success",
+							"message":"Stock bought"
+						})
 					})
 				});
 			}
@@ -228,6 +232,10 @@ app.post("/sell/:id", (req, res) => {
 					if(err) throw err;
 					client.db("broker").collection("wallets").updateOne({username:req.user.username}, {$set: add}, (err) => {
 						if(err) throw err;
+						return res.json({
+							"status":"success",
+							"message":"Stock sold"
+						})
 					})
 				});
 			}
