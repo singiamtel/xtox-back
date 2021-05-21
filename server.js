@@ -185,7 +185,6 @@ app.post("/sell/:id", (req, res) => {
 	const add = {}
 	var amountExisted
 	var stockExisted
-	var enoughMoney
 	var oldAmount
 	var money = 0
 	symbol = req.params.id.toUpperCase()
@@ -222,7 +221,7 @@ app.post("/sell/:id", (req, res) => {
 			if(!amountExisted){
 				oldAmount = req.body.amount
 			}
-			if(stockExisted && enoughMoney){
+			if(stockExisted){
 				//Update database
 				add[symbol] = oldAmount
 				let newMoney = result.eur + money
