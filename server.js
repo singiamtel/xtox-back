@@ -273,7 +273,9 @@ app.post("/wallet", function(req, res){
 		// Neither username nor id should be displayed in wallet
 		delete result.username
 		delete result._id
-		result.eur = result.eur.toFixed(2)
+		if(result.eur && typeof result.eur === "number"){
+			result.eur = result.eur.toFixed(2)
+		}
 		res.json(result)
 	})
 });
