@@ -8,6 +8,12 @@ const morgan = require("morgan")
 const {MongoClient} = require('mongodb');
 const jwt = require('jsonwebtoken');
 
+const dd_options = {
+  'response_code':true,
+  'tags': ['app:my_app']
+    }
+
+const connect_datadog = require('connect-datadog')(dd_options);
 
 if(!process.env.MONGODB_URI){
 	throw new Error("No MongoDB URI was set")
@@ -32,6 +38,7 @@ app.use(express.json())
 app.use(helmet())
 app.use(morgan("tiny"))
 app.use(cors())
+app.use(connect_datadog);
 // app.use(speedLimiter)
 
 function generateToken(username) {
