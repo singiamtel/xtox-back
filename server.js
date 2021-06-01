@@ -32,7 +32,7 @@ app.use(express.json())
 app.use(helmet())
 app.use(morgan("tiny"))
 app.use(cors())
-app.use(speedLimiter)
+// app.use(speedLimiter)
 
 function generateToken(username) {
 	return jwt.sign(username, process.env.JWT_SECRET, {expiresIn : 3600});
