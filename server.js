@@ -329,7 +329,7 @@ app.post("/wallet", function (req, res) {
 app.get("/", function (req, res) {
   res.json({
     status: "success",
-    message: "Proyectos III Broker API",
+    message: "Welcome to XTOX API! https://github.com/singiamtel/xtox-back",
   });
 });
 
