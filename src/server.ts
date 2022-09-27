@@ -6,17 +6,18 @@ import slowDown from "express-slow-down";
 import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
-import mongo from "mongodb";
-const { MongoClient } = mongo;
+import { MongoClient } from "mongodb";
 import jwt from "jsonwebtoken";
 
 if (!process.env.MONGODB_URI) {
   throw new Error("No MongoDB URI was set");
 }
-const client = new MongoClient(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+
+if (!process.env.JWT_SECRET) {
+  throw new Error("No JWT secret was set");
+}
+
+const client = new MongoClient(process.env.MONGODB_URI);
 
 await client.connect();
 console.log("Connected to MongoDB");
@@ -39,15 +40,20 @@ app.use(morgan("tiny"));
 app.use(cors());
 app.use(speedLimiter);
 
-function generateToken(username) {
-  return jwt.sign(username, process.env.JWT_SECRET, { expiresIn: 3600 });
+function generateToken(username: { username: string }) {
+  if (!username) {
+    throw new Error("No username was provided");
+  }
+  return jwt.sign(username, process.env.JWT_SECRET as string, {
+    expiresIn: 3600,
+  });
 }
 
 app.post("/login", (req, res) => {
   client
     .db("broker")
     .collection("users")
-    .findOne({ username: req.body.username }, (err, result) => {
+    .findOne({ username: req.body.username }, (err: any, result: any) => {
       if (err) throw err;
       if (result) {
         bcrypt.compare(req.body.password, result.password, (err, same) => {
@@ -77,7 +83,7 @@ app.post("/register", (req, res) => {
   client
     .db("broker")
     .collection("users")
-    .findOne({ username: req.body.username }, (err, result) => {
+    .findOne({ username: req.body.username }, (err: any, result: any) => {
       if (result) {
         res.json({
           status: "error",
@@ -100,17 +106,19 @@ app.post("/register", (req, res) => {
     });
 });
 
-function authenticateToken(req, res, next) {
+function authenticateToken(req: any, res: any, next: any) {
   const token = req.body.token;
   if (token == null) return res.sendStatus(401);
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
     if (err) {
       console.log(err);
       return res.sendStatus(401);
     }
 
-    req.user = user;
+    if (user) {
+      req.user = user;
+    }
 
     next();
   });
@@ -120,18 +128,18 @@ app.use("/buy/:id", authenticateToken);
 
 app.post("/buy/:id", (req, res) => {
   const add = {};
-  var amountExisted;
-  var stockExisted;
-  var enoughMoney;
-  var oldAmount;
+  var amountExisted: boolean;
+  let stockExisted: boolean;
+  let enoughMoney: boolean;
+  let oldAmount: string;
   var money = 0;
-  symbol = req.params.id.toUpperCase();
+  const symbol = req.params.id.toUpperCase();
   client
     .db("broker")
     .collection("wallets")
-    .findOne({ username: req.user.username }, (err, result) => {
+    .findOne({ username: req.body.username }, (err, result) => {
       if (err) throw err;
-      for (key in result) {
+      for (let key in result) {
         if (key === symbol) {
           amountExisted = true;
           oldAmount = (
@@ -148,9 +156,9 @@ app.post("/buy/:id", (req, res) => {
           } else {
             stockExisted = true;
           }
-          if (stockResult.hDailies[0].close * req.body.amount <= result.eur) {
+          if (stockResult?.hDailies[0].close * req.body.amount <= result?.eur) {
             enoughMoney = true;
-            money = stockResult.hDailies[0].close * req.body.amount;
+            money = stockResult?.hDailies[0].close * req.body.amount;
           }
 
           if (!amountExisted) {
@@ -159,7 +167,7 @@ app.post("/buy/:id", (req, res) => {
           if (stockExisted && enoughMoney) {
             //Update database
             add[symbol] = oldAmount;
-            let newMoney = result.eur - money;
+            let newMoney = result?.eur - money;
             let changeMoney = {};
             changeMoney["eur"] = newMoney;
             client
@@ -212,22 +220,20 @@ app.use("/sell/:id", authenticateToken);
 
 app.post("/sell/:id", (req, res) => {
   const add = {};
-  var amountExisted;
-  var stockExisted;
-  var oldAmount;
-  var money = 0;
-  symbol = req.params.id.toUpperCase();
+  let amountExisted: boolean;
+  let stockExisted: boolean;
+  let oldAmount: number;
+  let money = 0;
+  const symbol = req.params.id.toUpperCase();
   client
     .db("broker")
     .collection("wallets")
     .findOne({ username: req.user.username }, (err, result) => {
       if (err) throw err;
-      for (key in result) {
+      for (let key in result) {
         if (key === symbol) {
           amountExisted = true;
-          oldAmount = (
-            parseFloat(result[key]) - parseFloat(req.body.amount)
-          ).toString();
+          oldAmount = parseFloat(result[key]) - parseFloat(req.body.amount);
           if (oldAmount < 0) {
             return res.json({
               status: "error",
@@ -252,7 +258,7 @@ app.post("/sell/:id", (req, res) => {
             stockExisted = true;
           }
 
-          money = stockResult.hDailies[0].close * req.body.amount;
+          money = stockResult?.hDailies[0].close * req.body.amount;
 
           if (!amountExisted) {
             oldAmount = req.body.amount;
@@ -260,7 +266,7 @@ app.post("/sell/:id", (req, res) => {
           if (stockExisted) {
             //Update database
             add[symbol] = oldAmount;
-            let newMoney = result.eur + money;
+            let newMoney = result?.eur + money;
             let changeMoney = {};
             changeMoney["eur"] = newMoney;
             client
@@ -312,9 +318,8 @@ app.post("/wallet", function (req, res) {
     .collection("wallets")
     .findOne({ username: req.user.username }, (err, result) => {
       // Neither username nor id should be displayed in wallet
-      delete result.username;
-      delete result._id;
-      if (result.eur && typeof result.eur === "number") {
+      delete result?.username;
+      if (result?.eur && typeof result.eur === "number") {
         result.eur = result.eur.toFixed(2);
       }
       res.json(result);
@@ -333,7 +338,7 @@ app.get("/stock", function (req, res) {
     .db("broker")
     .collection("stocks")
     .find({})
-    .toArray((err, result) => {
+    .toArray((err: any, result: any) => {
       if (err) throw err;
       res.json(result);
     });

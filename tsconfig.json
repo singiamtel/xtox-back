@@ -1,0 +1,14 @@
+{
+	"extends": "@tsconfig/node17/tsconfig.json",
+	"compilerOptions": {
+		"module": "esnext",
+		"moduleResolution": "node",
+		"outDir": "dist",
+		"rootDir": "src",
+		"target": "es2017",
+		"noImplicitAny": false
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"],
+	"esModuleInterop": true
+}
