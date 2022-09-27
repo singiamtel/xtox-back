@@ -1,19 +1,14 @@
-require("dotenv").config();
-const bcrypt = require("bcrypt");
-const express = require("express");
-const slowDown = require("express-slow-down");
-const helmet = require("helmet");
-const cors = require("cors");
-const morgan = require("morgan");
-const { MongoClient } = require("mongodb");
-const jwt = require("jsonwebtoken");
-
-const dd_options = {
-  response_code: true,
-  tags: ["app:my_app"],
-};
-
-const connect_datadog = require("connect-datadog")(dd_options);
+import * as dotenv from "dotenv";
+dotenv.config();
+import bcrypt from "bcrypt";
+import express from "express";
+import slowDown from "express-slow-down";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+import mongo from "mongodb";
+const { MongoClient } = mongo;
+import jwt from "jsonwebtoken";
 
 if (!process.env.MONGODB_URI) {
   throw new Error("No MongoDB URI was set");
@@ -23,7 +18,8 @@ const client = new MongoClient(process.env.MONGODB_URI, {
   useUnifiedTopology: true,
 });
 
-client.connect();
+await client.connect();
+console.log("Connected to MongoDB");
 
 const speedLimiter = slowDown({
   // 1000 requests every 15 minutes
@@ -41,7 +37,6 @@ app.use(express.json());
 app.use(helmet());
 app.use(morgan("tiny"));
 app.use(cors());
-app.use(connect_datadog);
 app.use(speedLimiter);
 
 function generateToken(username) {
