@@ -92,7 +92,7 @@ app.post("/register", (req, res) => {
         return;
       }
 
-      bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
+      bcrypt.hash(req.body.password, saltRounds, function (_, hash) {
         client
           .db("broker")
           .collection("users")
@@ -326,14 +326,14 @@ app.post("/wallet", function (req, res) {
     });
 });
 
-app.get("/", function (req, res) {
+app.get("/", function (_, res) {
   res.json({
     status: "success",
     message: "Welcome to XTOX API! https://github.com/singiamtel/xtox-back",
   });
 });
 
-app.get("/stock", function (req, res) {
+app.get("/stock", function (_, res) {
   client
     .db("broker")
     .collection("stocks")
@@ -355,7 +355,10 @@ app.get("/stock/:symbol", function (req, res) {
     });
 });
 
-app.use(function (req, res, next) {
+
+
+
+app.use(function (_, res) {
   res.status(404).send("Not found");
 });
 
