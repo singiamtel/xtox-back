@@ -9,8 +9,22 @@ Default port is 8080
 
 # API Structure
 
-/stock -> All available stocks in database
-/stock/symbol -> Single stock (i.e. /stock/aapl)
+## Authorization
+
+POST /login -> Login with username and password, get a JWT for the other endpoints
+POST /register -> Create a new account
+
+## Free endpoints
+
+GET / -> Test endpoint
+GET /stock -> All available stocks in database
+GET /stock/symbol -> Single stock (i.e. /stock/aapl)
+
+## Protected endpoints
+
+POST /buy/:id -> Buy a stock (if you have enough money)
+POST /sell/:id -> Sell a stock
+GET /wallet -> See your current money and stocks owned
 
 # Environment
 
